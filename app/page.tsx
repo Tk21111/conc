@@ -1,7 +1,7 @@
 "use client"
 import React, { useEffect, useState } from "react";
 import { Stage, Layer, Rect, Circle, Text } from "react-konva";
-import { socket } from "./../lib/socket";
+import { useSocket } from "@/context/socketProvider";
 
 const TILE_SIZE = 60;
 const GRID_WIDTH = 100;
@@ -31,43 +31,29 @@ const zones = Array.from({ length: GRID_WIDTH * GRID_HEIGHT }, (_, i) => {
 });
 
 const CanvasMap = () => {
+
+  //get custom socket context
+  const socket = useSocket();
+
+  //hook up listener
+   useEffect(() => {
+    const handleMessage = (msg: string) => {
+      console.log("Message received:", msg);
+    };
+
+    socket.on("message", handleMessage);
+
+    return () => {
+      socket.off("message", handleMessage);
+    };
+  }, [socket]);
+
   const handleZoneClick = (zoneId: string) => {
     console.log("Clicked zone:", zoneId);
     // Only strategists can move players here
   };
 
-  const [isConnected, setIsConnected] = useState(false);
-  const [transport, setTransport] = useState("N/A");
-
-  useEffect(() => {
-    if (socket.connected) {
-      onConnect();
-    }
-
-    function onConnect() {
-      setIsConnected(true);
-      setTransport(socket.io.engine.transport.name);
-
-      socket.io.engine.on("upgrade", (transport) => {
-        setTransport(transport.name);
-      });
-
-      console.log("conn estisbish")
-    }
-
-    function onDisconnect() {
-      setIsConnected(false);
-      setTransport("N/A");
-    }
-
-    socket.on("connect", onConnect);
-    socket.on("disconnect", onDisconnect);
-
-    return () => {
-      socket.off("connect", onConnect);
-      socket.off("disconnect", onDisconnect);
-    };
-  }, []);
+ 
 
 
   return (
