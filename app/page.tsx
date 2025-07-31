@@ -1,103 +1,106 @@
-import Image from "next/image";
+"use client"
+import React, { useEffect, useState } from "react";
+import { Stage, Layer, Rect, Circle, Text } from "react-konva";
+import { socket } from "./../lib/socket";
 
-export default function Home() {
+const TILE_SIZE = 60;
+const GRID_WIDTH = 100;
+const GRID_HEIGHT = 60;
+
+const teamColors = {
+  red: "#f87171",
+  blue: "#60a5fa",
+  green: "#34d399",
+  neutral: "#d1d5db",
+};
+
+const players = [
+  { id: "p1", x: 2, y: 3, team: "red" },
+  { id: "p2", x: 4, y: 1, team: "blue" },
+];
+
+const zones = Array.from({ length: GRID_WIDTH * GRID_HEIGHT }, (_, i) => {
+  const x = i % GRID_WIDTH;
+  const y = Math.floor(i / GRID_WIDTH);
+  return {
+    id: `zone-${i}`,
+    x,
+    y,
+    team: "neutral",
+  };
+});
+
+const CanvasMap = () => {
+  const handleZoneClick = (zoneId: string) => {
+    console.log("Clicked zone:", zoneId);
+    // Only strategists can move players here
+  };
+
+  const [isConnected, setIsConnected] = useState(false);
+  const [transport, setTransport] = useState("N/A");
+
+  useEffect(() => {
+    if (socket.connected) {
+      onConnect();
+    }
+
+    function onConnect() {
+      setIsConnected(true);
+      setTransport(socket.io.engine.transport.name);
+
+      socket.io.engine.on("upgrade", (transport) => {
+        setTransport(transport.name);
+      });
+
+      console.log("conn estisbish")
+    }
+
+    function onDisconnect() {
+      setIsConnected(false);
+      setTransport("N/A");
+    }
+
+    socket.on("connect", onConnect);
+    socket.on("disconnect", onDisconnect);
+
+    return () => {
+      socket.off("connect", onConnect);
+      socket.off("disconnect", onDisconnect);
+    };
+  }, []);
+
+
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+    <Stage width={GRID_WIDTH * TILE_SIZE} height={GRID_HEIGHT * TILE_SIZE}>
+      <Layer>
+        {zones.map((zone) => (
+          <Rect
+            key={zone.id}
+            x={zone.x * TILE_SIZE}
+            y={zone.y * TILE_SIZE}
+            width={TILE_SIZE}
+            height={TILE_SIZE}
+            fill={teamColors[zone.team as keyof typeof teamColors]}
+            stroke="black"
+            strokeWidth={1}
+            onClick={() => handleZoneClick(zone.id)}
+          />
+        ))}
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
+        {players.map((player) => (
+          <Circle
+            key={player.id}
+            x={player.x * TILE_SIZE + TILE_SIZE / 2}
+            y={player.y * TILE_SIZE + TILE_SIZE / 2}
+            radius={10}
+            fill={teamColors[player.team as keyof typeof teamColors]}
+            stroke="white"
+            strokeWidth={2}
           />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+        ))}
+      </Layer>
+    </Stage>
   );
-}
+};
+
+export default CanvasMap;
